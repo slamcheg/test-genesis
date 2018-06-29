@@ -1,0 +1,35 @@
+#!/usr/bin/env php
+<?php
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+use App\Commands\VkCommand;
+use App\Components\Db\Mysql\Connection;
+use App\Components\DbMigration\Commands\Mysql\MigrateCommand;
+use Symfony\Component\Console\Application;
+
+$config = require dirname(__DIR__) . '/config/config.php';
+
+
+$application = new Application();
+try {
+    $connection = new Connection($config['connection']);
+    $connection->open();
+    $application->add(new MigrateCommand($connection, [
+        new \App\Migrations\CreateUserTable(),
+        new \App\Migrations\CreateAlbumsTable(),
+        new \App\Migrations\CreatePhotoTable()
+    ]));
+    $application->add(new VkCommand(
+        $config['vkServiceKey'],
+        $connection,
+        dirname(__DIR__)
+    ));
+
+    $application->add(new \App\Commands\InfoCommand($connection));
+
+    $application->run();
+    $connection->close();
+} catch (Exception $exception) {
+    echo $exception->getMessage();
+}

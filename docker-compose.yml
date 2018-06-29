@@ -1,0 +1,55 @@
+version: "3.3"
+services:
+  php:
+    container_name: ${COMPOSE_PROJECT_NAME}_php
+    image: php:fpm
+    build:
+      context: .
+      dockerfile: .docker/php/Dockerfile
+    links:
+      - mysql
+    depends_on:
+      - mysql
+    volumes:
+    #config
+      #fpm
+      - ./.docker/php/conf/fpm/php-fpm.conf:/etc/php/7.2/fpm/php-fpm.conf:ro
+      - ./.docker/php/conf/fpm/pool.d:/etc/php/7.2/fpm/pool.d
+      - ./.docker/php/conf/fpm/php.ini:/etc/php/7.2/fpm/php.ini:ro
+
+      #logs
+      - ./.docker/php/logs/:/var/log/php/
+
+      - ~/.composer/cache:/root/.composer/cache
+      - ~/.composer/auth.json:/root/.composer/auth.json
+      - ~/.ssh:/root/.ssh:ro
+
+      - ./app:/var/www
+
+      - ./.docker/php/conf/supervisor/:/etc/supervisor/conf.d/:ro
+
+    env_file:
+      - .env
+    environment:
+      DB_DRIVER: ${MYSQL_HOST}
+      DB_HOST: ${MYSQL_HOST}
+      DB_USER_NAME: ${MYSQL_USERNAME}
+      DB_USER_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+    ports:
+     - 17786:17786
+  mysql:
+    container_name: ${COMPOSE_PROJECT_NAME}_mysql
+    image: mariadb
+    volumes:
+     - ./.docker/mysql/config/my.conf:/etc/mysql/my.conf:ro
+     - ./.docker/mysql/data/:/var/lib/mysql/
+     - ./.docker/mysql/logs/:/var/log/mysql/
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USERNAME}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+
+    ports:
+      - 127.0.0.1:${MYSQL_PORT}:3306
